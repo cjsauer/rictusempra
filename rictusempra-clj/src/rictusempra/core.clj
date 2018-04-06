@@ -103,11 +103,12 @@
   :spawned
   [{:keys [actor_id value] :as replication}]
   (let [class-name (-> value :spawned :class_name)
-        {:keys [x y z]} (-> value :spawned :initialization :location)]
+        {:keys [x y z bias]} (-> value :spawned :initialization :location)]
     (when (classes-of-interest class-name)
      {:type "spawned"
       :actorId actor_id
       :className (-> value :spawned :class_name)
+      :bias bias
       :locX x
       :locY y
       :locZ z})))
@@ -117,10 +118,13 @@
   (when (classes-of-interest name)
     (cond
       (= name rigid-body-state-class)
-      (let [{x  :x y  :y z  :z} (-> value :rigid_body_state :location)
-            {rx :x ry :y rz :z} (-> value :rigid_body_state :rotation)]
+      (let [{x  :x y  :y z  :z bias :bias} (-> value :rigid_body_state :location)
+            {rx :x ry :y rz :z} (-> value :rigid_body_state :rotation)
+            rotation-limit (-> value :rigid_body_state :rotation :x :limit)]
         {:id (:value id)
          :className name
+         :bias bias
+         :rotLimit rotation-limit
          :newLocX x          , :newLocY y          , :newLocZ z
          :newRotX (:value rx), :newRotY (:value ry), :newRotZ (:value rz)})
       :default cmpt)))
@@ -137,8 +141,9 @@
 
 (defmethod simplify-replication
   :destroyed
-  [replication]
-  (assoc-in replication [:value :destroyed] true))
+  [{:keys [actor_id]}]
+  {:type "destroyed"
+   :actorId actor_id})
 
 (defmethod simplify-replication
   :default
@@ -155,13 +160,17 @@
   (transduce simplify-replication-xf conj replications))
 
 (defn simplify-frame
-  [frame]
-  (update frame :replications simplify-replications))
+  [{:keys [time delta replications] :as frame}]
+  (let [simple-reps (simplify-replications replications)]
+    {:time time
+     :delta delta
+     :spawned (filter #(= "spawned" (:type %)) simple-reps)
+     :updated (filter #(= "updated" (:type %)) simple-reps)
+     :destroyed (filter #(= "destroyed" (:type %)) simple-reps)}))
 
 (defn simplify-replay
   [replay]
-  (->> (map simplify-frame (frames replay))
-       (filter #(not-empty (:replications %)))))
+  (hash-map :frames (map simplify-frame (frames replay))))
 
 (defn simplify-file
   [f outputf]
@@ -170,7 +179,7 @@
     (spit outputf (json/write-str simplified))))
 
 (comment
-  (simplify-file "./resources/landmarks-calvin.json" "./target/landmarks-simplified.json")
+  (simplify-file "./resources/landmarks-calvin.json" "../rictusempra-vr/Assets/rictusempra/Data/simplified.json")
 
   (def replay (simplify-replay (read-replay "./resources/landmarks-calvin.json")))
 
