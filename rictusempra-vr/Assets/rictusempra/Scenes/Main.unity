@@ -206,6 +206,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   json: {fileID: 4900000, guid: 9cb9eaea9a9f94a5ab73545cf0a0100b, type: 3}
+  replaySpeed: 2
+  stadiumScale: 20
   ballPrefab: {fileID: 1894364699867114, guid: 8a1d693fb348d48789f81ef07109356f, type: 2}
   carPrefab: {fileID: 1137688329525656, guid: 09a8b4699fad24ab4bd1d57907217062, type: 2}
 --- !u!4 &872873596
@@ -295,8 +297,8 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1928076191}
-  m_LocalRotation: {x: -0.09922023, y: 0.8946931, z: -0.2479121, w: -0.3580772}
-  m_LocalPosition: {x: 14.406255, y: 10.809823, z: 11.27228}
+  m_LocalRotation: {x: 0.1895494, y: -0.7524376, z: 0.24544252, w: 0.58109087}
+  m_LocalPosition: {x: 12.330051, y: 9.399194, z: 3.2058032}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}

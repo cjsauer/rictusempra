@@ -61,17 +61,21 @@ class Replay {
 
 public class ReplayManager : MonoBehaviour {
     public TextAsset json;
+    public int replaySpeed = 1;
+    public float stadiumScale = 10f;
     public GameObject ballPrefab;
     public GameObject carPrefab;
 
     Replay replay;
     Queue<Frame> queuedFrames;
     Dictionary<int, GameObject> actors;
+    int updateAcc;
 
     void Restart() {
         actors = new Dictionary<int, GameObject>();
         replay = Replay.CreateFromJSON(json.text);
         queuedFrames = new Queue<Frame>(replay.frames);
+        updateAcc = 0;
 
         // Make sure there are things to actually spawn
         Debug.Assert(replay.frames.FindAll(f => f.spawned.Count > 0).Count > 0);
@@ -86,7 +90,7 @@ public class ReplayManager : MonoBehaviour {
         foreach(SpawnReplication spawn in spawns) {
             if (!actors.ContainsKey(spawn.actorId))
             {
-                Vector3 pos = new Vector3(spawn.locX, spawn.locZ, spawn.locY) / 4096f * 10f;
+                Vector3 pos = new Vector3(spawn.locX, spawn.locZ, spawn.locY) / 4096f * stadiumScale;
                 GameObject actor = null;
 
                 switch (spawn.className)
@@ -117,10 +121,10 @@ public class ReplayManager : MonoBehaviour {
             {
                 foreach (ComponentUpdate c in update.components)
                 {
-                    Vector3 newPos = new Vector3(c.newLocX, c.newLocZ, c.newLocY) / 4096f * 10f;
+                    Vector3 newPos = new Vector3(c.newLocX, c.newLocZ, c.newLocY) / 4096f * stadiumScale;
                     actor.transform.position = newPos;
 
-                    Vector3 euler = new Vector3(c.newRotX, c.newRotY, c.newRotZ) / c.rotLimit * 360f;
+                    Vector3 euler = new Vector3(c.newRotZ, -c.newRotY, c.newRotX) / c.rotLimit * 360f;
                     actor.transform.eulerAngles = euler;
                 }
             }
@@ -141,7 +145,7 @@ public class ReplayManager : MonoBehaviour {
     }
 
     void Update() {
-        if (replay != null && queuedFrames.Count > 0) {
+        if (((updateAcc % replaySpeed) == 0) && replay != null && queuedFrames.Count > 0) {
             Frame currentFrame = queuedFrames.Dequeue();
             // Debug.Log(currentFrame.time.ToString());
 
@@ -153,5 +157,6 @@ public class ReplayManager : MonoBehaviour {
             HandleUpdates(currentFrame.updated);
             HandleDestruction(currentFrame.destroyed);
         }
+        updateAcc++;
     }
 }
