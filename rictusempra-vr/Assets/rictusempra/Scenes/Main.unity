@@ -207,7 +207,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   json: {fileID: 4900000, guid: 9cb9eaea9a9f94a5ab73545cf0a0100b, type: 3}
   ballPrefab: {fileID: 1894364699867114, guid: 8a1d693fb348d48789f81ef07109356f, type: 2}
-  carPrefab: {fileID: 1413688627525602, guid: 9fac19925c0d74d0194722d243e7c072, type: 2}
+  carPrefab: {fileID: 1137688329525656, guid: 09a8b4699fad24ab4bd1d57907217062, type: 2}
 --- !u!4 &872873596
 Transform:
   m_ObjectHideFlags: 0
