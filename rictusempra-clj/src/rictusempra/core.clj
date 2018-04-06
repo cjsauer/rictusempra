@@ -101,21 +101,39 @@
 
 (defmethod simplify-replication
   :spawned
-  [{:keys [value] :as replication}]
-  (let [spawned (select-keys (:spawned value) [:class_name :initialization])]
-    (when (classes-of-interest (:class_name spawned))
-      (-> replication
-          (dissoc :value)
-          (assoc :spawned spawned)))))
+  [{:keys [actor_id value] :as replication}]
+  (let [class-name (-> value :spawned :class_name)
+        {:keys [x y z]} (-> value :spawned :initialization :location)]
+    (when (classes-of-interest class-name)
+     {:type "spawned"
+      :actorId actor_id
+      :className (-> value :spawned :class_name)
+      :locX x
+      :locY y
+      :locZ z})))
+
+(defn simplify-component
+  [{:keys [id name value] :as cmpt}]
+  (when (classes-of-interest name)
+    (cond
+      (= name rigid-body-state-class)
+      (let [{x  :x y  :y z  :z} (-> value :rigid_body_state :location)
+            {rx :x ry :y rz :z} (-> value :rigid_body_state :rotation)]
+        {:id (:value id)
+         :className name
+         :newLocX x          , :newLocY y          , :newLocZ z
+         :newRotX (:value rx), :newRotY (:value ry), :newRotZ (:value rz)})
+      :default cmpt)))
 
 (defmethod simplify-replication
   :updated
-  [{:keys [value] :as replication}]
-  (let [updated (filter (comp classes-of-interest :name) (:updated value))]
-    (when (seq updated)
-      (-> replication
-          (dissoc :value)
-          (assoc :updated (mapv :value updated))))))
+  [{:keys [actor_id value] :as replication}]
+  (let [all-updated-cmpts (:updated value)
+        updated-cmpts (filter #(classes-of-interest (:name %)) all-updated-cmpts)]
+    (when (not-empty updated-cmpts)
+      {:type "updated"
+       :actorId actor_id
+       :components (mapv simplify-component updated-cmpts)})))
 
 (defmethod simplify-replication
   :destroyed
@@ -130,8 +148,7 @@
 (def simplify-replication-xf
   (comp
    (map #(update % :actor_id :value))
-   (keep simplify-replication)
-   (map unpack-replication-value)))
+   (keep simplify-replication)))
 
 (defn simplify-replications
   [replications]
@@ -143,17 +160,21 @@
 
 (defn simplify-replay
   [replay]
-  (map simplify-frame (frames replay)))
+  (->> (map simplify-frame (frames replay))
+       (filter #(not-empty (:replications %)))))
 
 (defn simplify-file
   [f outputf]
   (let [replay (read-replay f)
         simplified (simplify-replay replay)]
-    (binding [*print-length* false]
-      (spit outputf (pr-str simplified)))))
+    (spit outputf (json/write-str simplified))))
 
 (comment
-  (simplify-file "./resources/landmarks-calvin.json" "./resources/landmarks-calvin.edn")
+  (simplify-file "./resources/landmarks-calvin.json" "./target/landmarks-simplified.json")
+
   (def replay (simplify-replay (read-replay "./resources/landmarks-calvin.json")))
+
+  (let [replay (read-replay "./resources/landmarks-calvin.json")]
+    (simplify-replay replay))
 
   )
